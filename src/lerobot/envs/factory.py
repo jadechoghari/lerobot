@@ -72,7 +72,7 @@ def make_env(cfg: EnvConfig, n_envs: int = 1, use_async_envs: bool = False) -> g
             multitask_eval=cfg.multitask_eval,
         )
     if "metaworld" in cfg.type:
-        from lerobot.common.envs.metaworld import create_metaworld_envs
+        from lerobot.envs.metaworld import create_metaworld_envs
         env = create_metaworld_envs(task=cfg.task, n_envs=n_envs, gym_kwargs=cfg.gym_kwargs, env_cls=env_cls, multitask_eval=cfg.multitask_eval)
     else:
         package_name = f"gym_{cfg.type}"

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # config
-REPO_ID=yzembodied/libero_10_image_task_1
-TASK=libero_10
+REPO_ID=jadechoghari/metaworld
+TASK=metaworld-push-v2
 OUTPUT_DIR=./outputs/
 
 # clean previous run
@@ -33,13 +33,13 @@ MAX_IMAGE_DIM=1024
 unset LEROBOT_HOME
 unset HF_LEROBOT_HOME
 
-echo -e "\033[1;33m[WARNING]\033[0m LIBERO is not yet fully supported in this PR!"
+echo -e "\033[1;33m[WARNING]\033[0m METAWORLD is not yet fully supported in this PR!"
 
 # launch
 python src/lerobot/scripts/train.py \
   --policy.type=$POLICY \
   --dataset.repo_id=$REPO_ID \
-  --env.type=libero \
+  --env.type=metaworld \
   --env.task=$TASK \
   --output_dir=$OUTPUT_DIR \
   --steps=$STEPS \
