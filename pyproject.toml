@@ -148,6 +148,7 @@ libero = [
     "bddl==1.0.1",
     "matplotlib",
     "cloudpickle",
+    "future",
     "gym",
 ]
 # All
