@@ -62,6 +62,7 @@ import einops
 import gymnasium as gym
 import numpy as np
 import torch
+from termcolor import colored
 from torch import Tensor, nn
 from tqdm import trange
 
@@ -73,6 +74,7 @@ from lerobot.policies.factory import make_policy
 from lerobot.policies.pretrained import PreTrainedPolicy
 from lerobot.policies.utils import get_device_from_parameters
 from lerobot.utils.io_utils import write_video
+from lerobot.utils.random_utils import set_seed
 from lerobot.utils.utils import (
     get_safe_torch_device,
     init_logging,
@@ -146,9 +148,7 @@ def rollout(
     check_env_attributes_and_types(env)
     while not np.all(done) and step < max_steps:
         # Numpy array to tensor and changing dictionary keys to LeRobot policy format.
-        # observation = preprocess_observation(observation)
-        observation = preprocess_observation(observation, cfg=policy.config)
-        breakpoint()
+        observation = preprocess_observation(observation)
         if return_observations:
             all_observations.append(deepcopy(observation))
 
@@ -199,7 +199,7 @@ def rollout(
 
     # Track the final observation.
     if return_observations:
-        observation = preprocess_observation(observation, cfg=policy.config)
+        observation = preprocess_observation(observation)
         all_observations.append(deepcopy(observation))
 
     # Stack the sequence along the first dimension so that we have (batch, sequence, *) tensors.
@@ -461,23 +461,8 @@ def _compile_episode_data(
     return data_dict
 
 
-def set_global_seed(seed):
-    """Set seed for reproducibility."""
-    import random
-
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
-
-
-def log_output_dir(out_dir):
-    logging.info("Output dir:" + f" {out_dir}")
-
-
 @parser.wrap()
-def eval(cfg: EvalPipelineConfig):
+def eval_main(cfg: EvalPipelineConfig):
     logging.info(pformat(asdict(cfg)))
 
     # Check device is available
@@ -485,9 +470,9 @@ def eval(cfg: EvalPipelineConfig):
 
     torch.backends.cudnn.benchmark = True
     torch.backends.cuda.matmul.allow_tf32 = True
-    set_global_seed(cfg.seed)
+    set_seed(cfg.seed)
 
-    log_output_dir(cfg.output_dir)
+    logging.info(colored("Output dir:", "yellow", attrs=["bold"]) + f" {cfg.output_dir}")
 
     logging.info("Making environment.")
     env = make_env(cfg.env, n_envs=cfg.eval.batch_size, use_async_envs=cfg.eval.use_async_envs)
@@ -495,11 +480,9 @@ def eval(cfg: EvalPipelineConfig):
     logging.info("Making policy.")
     policy = make_policy(
         cfg=cfg.policy,
-        # device=device,
         env_cfg=cfg.env,
     )
     policy.eval()
-
     with torch.no_grad(), torch.autocast(device_type=device.type) if cfg.policy.use_amp else nullcontext():
         if cfg.env.multitask_eval:
             info = eval_policy_multitask(
@@ -590,31 +573,49 @@ def eval_policy_multitask(
             "video_paths": task_result.get("video_paths", []),
         }
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_parallel_tasks) as executor:
-        future_to_task = {
-            executor.submit(eval_task, task_group, task_id, env): (task_group, task_id)
-            for task_group, tasks in envs.items()
-            for task_id, env in tasks.items()
-        }
+    task_group_results = {}
+    if max_parallel_tasks == 1:
+        # sequential mode (safe for colab / EGL)
+        for task_group, tasks in envs.items():
+            for task_id, env in tasks.items():
+                task_result = eval_task(task_group, task_id, env)
+                if task_group not in task_group_results:
+                    task_group_results[task_group] = {
+                        "sum_rewards": [],
+                        "max_rewards": [],
+                        "successes": [],
+                        "video_paths": [],
+                    }
+                task_group_results[task_group]["sum_rewards"].extend(task_result["sum_rewards"])
+                task_group_results[task_group]["max_rewards"].extend(task_result["max_rewards"])
+                task_group_results[task_group]["successes"].extend(task_result["successes"])
+                task_group_results[task_group]["video_paths"].extend(task_result["video_paths"])
+    else:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_parallel_tasks) as executor:
+            future_to_task = {
+                executor.submit(eval_task, task_group, task_id, env): (task_group, task_id)
+                for task_group, tasks in envs.items()
+                for task_id, env in tasks.items()
+            }
 
-        task_group_results = {}
+            task_group_results = {}
 
-        for future in concurrent.futures.as_completed(future_to_task):
-            task_result = future.result()
-            task_group = task_result["task_group"]
+            for future in concurrent.futures.as_completed(future_to_task):
+                task_result = future.result()
+                task_group = task_result["task_group"]
 
-            if task_group not in task_group_results:
-                task_group_results[task_group] = {
-                    "sum_rewards": [],
-                    "max_rewards": [],
-                    "successes": [],
-                    "video_paths": [],
-                }
+                if task_group not in task_group_results:
+                    task_group_results[task_group] = {
+                        "sum_rewards": [],
+                        "max_rewards": [],
+                        "successes": [],
+                        "video_paths": [],
+                    }
 
-            task_group_results[task_group]["sum_rewards"].extend(task_result["sum_rewards"])
-            task_group_results[task_group]["max_rewards"].extend(task_result["max_rewards"])
-            task_group_results[task_group]["successes"].extend(task_result["successes"])
-            task_group_results[task_group]["video_paths"].extend(task_result["video_paths"])
+                task_group_results[task_group]["sum_rewards"].extend(task_result["sum_rewards"])
+                task_group_results[task_group]["max_rewards"].extend(task_result["max_rewards"])
+                task_group_results[task_group]["successes"].extend(task_result["successes"])
+                task_group_results[task_group]["video_paths"].extend(task_result["video_paths"])
 
     # Process results per task group
     for task_group, data in task_group_results.items():
@@ -664,4 +665,4 @@ def eval_policy_multitask(
 
 if __name__ == "__main__":
     init_logging()
-    eval()
+    eval_main()

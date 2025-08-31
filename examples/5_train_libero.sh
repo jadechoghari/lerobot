@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # config
-REPO_ID=yzembodied/libero_10_image_task_1
+REPO_ID=jadechoghari/smol-libero3
 TASK=libero_10
 OUTPUT_DIR=./outputs/
 
@@ -16,7 +16,7 @@ SAVE_FREQ=10000
 NUM_WORKERS=0
 
 # model params
-POLICY=pi0
+POLICY=smolvla
 USE_AMP=false
 OPTIMIZER_LR=1e-4
 PEFT_METHOD=lora
@@ -32,7 +32,7 @@ MAX_NUM_IMAGES=2
 MAX_IMAGE_DIM=1024
 unset LEROBOT_HOME
 unset HF_LEROBOT_HOME
-
+export MUJOCO_GL=egl
 echo -e "\033[1;33m[WARNING]\033[0m LIBERO is not yet fully supported in this PR!"
 
 # launch
@@ -48,6 +48,6 @@ python src/lerobot/scripts/train.py \
   --save_freq=$SAVE_FREQ \
   --num_workers=$NUM_WORKERS \
   --policy.repo_id=$VLM_REPO_ID \
-  --env.multitask_eval=True \
+  --env.multitask_eval=False \
   --eval.batch_size=1 \
   --eval.n_episodes=1 \

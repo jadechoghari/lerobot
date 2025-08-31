@@ -19,7 +19,7 @@ from typing import Any
 import draccus
 
 from lerobot.configs.types import FeatureType, PolicyFeature
-from lerobot.constants import ACTION, OBS_ENV_STATE, OBS_IMAGE, OBS_IMAGE_2, OBS_IMAGES, OBS_STATE
+from lerobot.constants import ACTION, OBS_ENV_STATE, OBS_IMAGE, OBS_IMAGES, OBS_STATE
 from lerobot.robots import RobotConfig
 from lerobot.teleoperators.config import TeleoperatorConfig
 
@@ -295,8 +295,8 @@ class LiberoEnv(EnvConfig):
         default_factory=lambda: {
             "action": ACTION,
             "agent_pos": OBS_STATE,
-            "pixels/agentview_image": f"{OBS_IMAGE}",
-            "pixels/robot0_eye_in_hand_image": f"{OBS_IMAGE_2}",
+            "pixels/agentview_image": f"{OBS_IMAGES}.image",
+            "pixels/robot0_eye_in_hand_image": f"{OBS_IMAGES}.image2",
         }
     )
 
