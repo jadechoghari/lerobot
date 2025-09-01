@@ -153,6 +153,7 @@ libero = [
     "egl_probe @ git+https://github.com/jadechoghari/egl_probe.git#egg=egl_probe",
     "libero @ git+https://github.com/jadechoghari/LIBERO.git@main#egg=libero",
 ]
+metaworld = ["metaworld==3.0.0"]
 # All
 all = [
     "lerobot[dynamixel]",
