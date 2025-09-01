@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib
-
+from typing import Union
 import gymnasium as gym
 
-from lerobot.envs.configs import AlohaEnv, EnvConfig, HILEnvConfig, LiberoEnv, PushtEnv, XarmEnv
+from lerobot.envs.configs import AlohaEnv, EnvConfig, HILEnvConfig, LiberoEnv, PushtEnv, XarmEnv, MetaworldEnv
 
 
 def make_env_config(env_type: str, **kwargs) -> EnvConfig:
@@ -31,11 +31,13 @@ def make_env_config(env_type: str, **kwargs) -> EnvConfig:
         return HILEnvConfig(**kwargs)
     elif env_type == "libero":
         return LiberoEnv(**kwargs)
+    elif env_type == "metaworld":
+        return MetaworldEnv(**kwargs)
     else:
         raise ValueError(f"Policy type '{env_type}' is not available.")
 
 
-def make_env(cfg: EnvConfig, n_envs: int = 1, use_async_envs: bool = False) -> gym.vector.VectorEnv | None:
+def make_env(cfg: EnvConfig, n_envs: int = 1, use_async_envs: bool = False) -> Union[gym.vector.VectorEnv, dict[str, dict[str, gym.vector.VectorEnv]]]:
     """Makes a gym vector environment according to the config.
 
     Args:
@@ -69,6 +71,9 @@ def make_env(cfg: EnvConfig, n_envs: int = 1, use_async_envs: bool = False) -> g
             env_cls=env_cls,
             multitask_eval=cfg.multitask_eval,
         )
+    elif "metaworld" in cfg.type:
+        from lerobot.envs.metaworld import create_metaworld_envs
+        env = create_metaworld_envs(task=cfg.task, n_envs=n_envs, gym_kwargs=cfg.gym_kwargs, env_cls=env_cls, multitask_eval=cfg.multitask_eval)
     else:
         package_name = f"gym_{cfg.type}"
         try:

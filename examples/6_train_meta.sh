@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # config
-REPO_ID=jadechoghari/smol-libero3
-TASK=libero_10
+REPO_ID=jadechoghari/metaworld
+TASK=metaworld-push-v2
 OUTPUT_DIR=./outputs/
 
 # clean previous run
@@ -16,7 +16,7 @@ SAVE_FREQ=10000
 NUM_WORKERS=0
 
 # model params
-POLICY=smolvla
+POLICY=pi0
 USE_AMP=false
 OPTIMIZER_LR=1e-4
 PEFT_METHOD=lora
@@ -32,14 +32,14 @@ MAX_NUM_IMAGES=2
 MAX_IMAGE_DIM=1024
 unset LEROBOT_HOME
 unset HF_LEROBOT_HOME
-export MUJOCO_GL=egl
-echo -e "\033[1;33m[WARNING]\033[0m LIBERO is not yet fully supported in this PR!"
+
+echo -e "\033[1;33m[WARNING]\033[0m METAWORLD is not yet fully supported in this PR!"
 
 # launch
 python src/lerobot/scripts/train.py \
   --policy.type=$POLICY \
   --dataset.repo_id=$REPO_ID \
-  --env.type=libero \
+  --env.type=metaworld \
   --env.task=$TASK \
   --output_dir=$OUTPUT_DIR \
   --steps=$STEPS \
@@ -48,6 +48,6 @@ python src/lerobot/scripts/train.py \
   --save_freq=$SAVE_FREQ \
   --num_workers=$NUM_WORKERS \
   --policy.repo_id=$VLM_REPO_ID \
-  --env.multitask_eval=False \
+  --env.multitask_eval=True \
   --eval.batch_size=1 \
   --eval.n_episodes=1 \
