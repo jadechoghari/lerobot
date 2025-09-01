@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Callable
+from typing import Any, Callable, Union
 from itertools import chain
 import gymnasium as gym
 import metaworld
@@ -29,7 +29,7 @@ TASK_POLICY_MAPPING = {
     k: getattr(policies, v) for k, v in data["TASK_POLICY_MAPPING"].items()
 }
 
-def create_metaworld_envs(task: str, n_envs: int, gym_kwargs: dict[str, Any] = None, env_cls: Callable = None, multitask_eval: bool = True)  -> dict[str, dict[str, Any]]:
+def create_metaworld_envs(task: str, n_envs: int, gym_kwargs: dict[str, Any] = None, env_cls: Callable = None, multitask_eval: bool = True)  -> Union[gym.vector.VectorEnv, dict[str, dict[str, gym.vector.VectorEnv]]]:
     if gym_kwargs is None:
         gym_kwargs = {}
     if not multitask_eval:
